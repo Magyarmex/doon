@@ -62,6 +62,25 @@ describe('GameEngine', () => {
     engine.update(0.1);
     assert.ok(player.weapon.reloading > 0, 'reload should start when ammo is empty');
   });
+
+  test('rifle queues audio playback when firing', () => {
+    const canvas = new StubCanvas();
+    const debug = new DebugMetrics();
+    const engine = new GameEngine({ canvas, level: new Level(primaryLevel), debug });
+    const stubAudio = {
+      calls: 0,
+      playSegmented: () => {
+        stubAudio.calls += 1;
+        return Promise.resolve();
+      }
+    };
+
+    engine.audio = stubAudio;
+    engine.input.keys.add('Space');
+    engine.update(0.1);
+
+    assert.equal(stubAudio.calls, 1, 'rifle should request audio playback');
+  });
 });
 
 describe('DebugMetrics', () => {

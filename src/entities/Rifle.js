@@ -13,8 +13,13 @@ export class Rifle {
     this.debug = debug;
   }
 
-  update({ delta, input, owner, debug }) {
-    if (this.cooldown > 0) this.cooldown -= delta;
+  update({ delta, input, owner, debug, audio }) {
+    if (this.cooldown > 0) {
+      this.cooldown -= delta;
+      if (this.cooldown <= 0) {
+        debug.setFlag('rifle_state', 'ready');
+      }
+    }
     if (this.reloading > 0) {
       this.reloading -= delta;
       if (this.reloading <= 0) {
@@ -34,13 +39,13 @@ export class Rifle {
     }
 
     if (input.isPressed('Space')) {
-      return this.shoot(owner, debug);
+      return this.shoot({ owner, debug, audio });
     }
 
     return null;
   }
 
-  shoot(owner, debug) {
+  shoot({ owner, debug, audio }) {
     if (this.cooldown > 0) return null;
     if (this.ammo <= 0) {
       debug.recordError(new EngineError('Cannot shoot: empty magazine'));
@@ -52,6 +57,20 @@ export class Rifle {
     this.cooldown = this.fireInterval;
     debug.log('Rifle fired', { remaining: this.ammo });
     debug.setFlag('rifle_ammo', this.ammo);
+    debug.setFlag('rifle_state', 'cooldown');
+    debug.incrementCounter('rifle_shots_fired');
+
+    if (audio?.playSegmented) {
+      debug.setFlag('rifle_audio', 'queued');
+      void audio.playSegmented({
+        key: 'rifle_fire',
+        url: '/sfx_Library/shot-and-reload-6158.mp3',
+        halfGain: 0.5
+      });
+    } else {
+      debug.incrementCounter('rifle_audio_skipped');
+      debug.setFlag('rifle_audio', 'missing');
+    }
 
     const muzzle = {
       x: owner.position.x,

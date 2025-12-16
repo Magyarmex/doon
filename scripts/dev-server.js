@@ -5,6 +5,7 @@ import url from 'node:url';
 
 const root = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), '..');
 const publicDir = path.join(root, 'public');
+const sfxDir = path.join(root, 'sfx_Library');
 const defaultFile = path.join(publicDir, 'index.html');
 const port = process.env.PORT || 4173;
 const host = process.env.HOST || '0.0.0.0';
@@ -12,7 +13,8 @@ const host = process.env.HOST || '0.0.0.0';
 const mimeTypes = {
   '.html': 'text/html',
   '.js': 'application/javascript',
-  '.css': 'text/css'
+  '.css': 'text/css',
+  '.mp3': 'audio/mpeg'
 };
 
 function sendError(res, message, status = 500) {
@@ -20,16 +22,32 @@ function sendError(res, message, status = 500) {
   res.end(message);
 }
 
+function resolveAsset(pathname) {
+  const candidates = [
+    path.join(publicDir, pathname),
+    path.join(sfxDir, pathname.replace(/^\/sfx_Library\//, ''))
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
 function serveStatic(req, res) {
   const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
   const pathname = parsedUrl.pathname === '/' ? '/index.html' : parsedUrl.pathname;
-  const filePath = path.join(publicDir, pathname);
+  const filePath = resolveAsset(pathname);
+
+  if (!filePath) {
+    return sendError(res, 'Not found', 404);
+  }
 
   fs.readFile(filePath, (err, data) => {
     if (err) {
-      if (err.code === 'ENOENT') {
-        return sendError(res, 'Not found', 404);
-      }
       return sendError(res, 'Internal server error');
     }
 

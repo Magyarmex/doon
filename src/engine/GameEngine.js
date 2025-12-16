@@ -4,6 +4,7 @@ import { Player } from '../entities/Player.js';
 import { Enemy } from '../entities/Enemy.js';
 import { Rifle } from '../entities/Rifle.js';
 import { EngineError } from '../utils/Errors.js';
+import { AudioEngine } from './AudioEngine.js';
 
 export class GameEngine {
   constructor({ canvas, level, debug }) {
@@ -15,6 +16,7 @@ export class GameEngine {
     this.debug = debug;
     this.renderer = new Renderer(canvas, debug);
     this.input = new Input(debug);
+    this.audio = new AudioEngine({ debug });
     this.entities = [];
     this.camera = {
       position: { x: 0, y: 0, z: 0 },
@@ -70,7 +72,14 @@ export class GameEngine {
   update(delta) {
     this.entities.forEach((entity) => {
       try {
-        entity.update({ delta, input: this.input, level: this.level, debug: this.debug, entities: this.entities });
+        entity.update({
+          delta,
+          input: this.input,
+          level: this.level,
+          debug: this.debug,
+          entities: this.entities,
+          audio: this.audio
+        });
       } catch (error) {
         throw new EngineError(`Entity ${entity.type} update failed`, { cause: error });
       }
