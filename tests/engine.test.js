@@ -82,6 +82,23 @@ describe('GameEngine', () => {
 
     assert.equal(stubAudio.calls, 1, 'rifle should request audio playback');
   });
+
+  test('enemy spawns ahead of the player and keeps patrolling', () => {
+    const canvas = new StubCanvas();
+    const debug = new DebugMetrics();
+    const engine = new GameEngine({ canvas, level: new Level(primaryLevel), debug });
+
+    const player = engine.entities.find((e) => e.type === 'player');
+    const enemy = engine.entities.find((e) => e.type === 'enemy');
+
+    assert.ok(enemy.position.z > player.position.z, 'enemy should start in front of the player');
+
+    engine.update(0.25);
+
+    assert.ok(!engine.level.isWallAt(enemy.position.x, enemy.position.z), 'enemy stays in navigable space');
+    assert.ok(Math.abs(enemy.position.x - player.position.x) < engine.level.tileSize * 2, 'enemy should remain near the player lane');
+    assert.equal(debug.getFlag('enemy_state'), 'patrolling');
+  });
 });
 
 describe('DebugMetrics', () => {
