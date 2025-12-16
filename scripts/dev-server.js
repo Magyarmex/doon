@@ -7,6 +7,7 @@ const root = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), '..'
 const publicDir = path.join(root, 'public');
 const defaultFile = path.join(publicDir, 'index.html');
 const port = process.env.PORT || 4173;
+const host = process.env.HOST || '0.0.0.0';
 
 const mimeTypes = {
   '.html': 'text/html',
@@ -54,6 +55,10 @@ const server = http.createServer((req, res) => {
   serveStatic(req, res);
 });
 
-server.listen(port, () => {
-  console.log(`Dev server running at http://localhost:${port}`);
+server.on('error', (error) => {
+  console.error('[dev-server] Failed to start server:', error);
+});
+
+server.listen(port, host, () => {
+  console.log(`Dev server running at http://${host}:${port}`);
 });
