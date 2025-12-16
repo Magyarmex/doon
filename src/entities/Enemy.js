@@ -24,8 +24,24 @@ export class Enemy {
 
     const wouldHitWall = level?.isWallAt(nextX, nextZ);
     if (wouldHitWall) {
-      debug?.incrementCounter('enemy_wall_deflections');
-      debug?.setFlag('enemy_state', 'blocked');
+      const lateralStep = this.size;
+      const leftTargetX = this.position.x - lateralStep;
+      const rightTargetX = this.position.x + lateralStep;
+      const canStepLeft = !level?.isWallAt(leftTargetX, nextZ);
+      const canStepRight = !level?.isWallAt(rightTargetX, nextZ);
+
+      if (canStepLeft || canStepRight) {
+        const preferredX = canStepLeft && (!canStepRight || Math.abs(leftTargetX - anchor.x) <= Math.abs(rightTargetX - anchor.x))
+          ? leftTargetX
+          : rightTargetX;
+        this.position.x = preferredX;
+        this.position.z = nextZ;
+        debug?.incrementCounter('enemy_wall_sidestep');
+        debug?.setFlag('enemy_state', 'patrolling');
+      } else {
+        debug?.incrementCounter('enemy_wall_deflections');
+        debug?.setFlag('enemy_state', 'blocked');
+      }
     } else {
       this.position.x = nextX;
       this.position.z = nextZ;

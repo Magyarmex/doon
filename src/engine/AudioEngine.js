@@ -7,6 +7,8 @@ export class AudioEngine {
     this.state = 'uninitialized';
     this.soundtrackTracks = [];
     this.soundtrackIndex = 0;
+    this.soundtrackTimer = null;
+    this.soundtrackLoopActive = false;
     const AudioContext = globalThis.AudioContext || globalThis.webkitAudioContext;
 
     if (!AudioContext) {
@@ -99,13 +101,13 @@ export class AudioEngine {
   async playSegmented({ key, url, halfGain = 0.5 } = {}) {
     if (!key) {
       this.debug?.recordError(new EngineError('playSegmented requires a key'));
-      return;
+      return Promise.resolve(null);
     }
 
     if (!url) {
       this.debug?.recordError(new EngineError('playSegmented requires a url'));
       this.debug?.incrementCounter('audio_playbacks_failed');
-      return;
+      return Promise.resolve(null);
     }
 
     const clampedGain = Math.max(0, Math.min(1, halfGain));
@@ -134,13 +136,17 @@ export class AudioEngine {
       source.start(now);
       this.debug?.incrementCounter('audio_playbacks_started');
       this.debug?.setFlag('audio_last_play', 'web_audio');
-      source.onended = () => {
-        this.debug?.incrementCounter('audio_playbacks_completed');
-      };
+
+      return await new Promise((resolve) => {
+        source.onended = () => {
+          this.debug?.incrementCounter('audio_playbacks_completed');
+          resolve({ method: 'web_audio', duration: buffer.duration });
+        };
+      });
     } catch (error) {
       this.debug?.recordError(new EngineError('Audio playback failed', { cause: error }));
       this.debug?.incrementCounter('audio_playbacks_failed');
-      this.playWithElement({ key, url, halfGain: clampedGain, reason: 'web_audio_exception' });
+      return this.playWithElement({ key, url, halfGain: clampedGain, reason: 'web_audio_exception' });
     }
   }
 
@@ -148,7 +154,7 @@ export class AudioEngine {
     if (typeof Audio === 'undefined') {
       this.debug?.recordError(new EngineError('HTMLAudioElement unavailable for fallback playback'));
       this.debug?.incrementCounter('audio_playbacks_failed');
-      return;
+      return Promise.resolve(null);
     }
 
     try {
@@ -156,8 +162,11 @@ export class AudioEngine {
       element.volume = 1;
 
       const safeHalfGain = Math.max(0, Math.min(1, halfGain));
+      let lastKnownDuration = null;
+
       element.addEventListener('loadedmetadata', () => {
-        const halfDurationMs = Number.isFinite(element.duration) ? (element.duration / 2) * 1000 : null;
+        lastKnownDuration = Number.isFinite(element.duration) ? element.duration : null;
+        const halfDurationMs = lastKnownDuration ? (element.duration / 2) * 1000 : null;
         if (halfDurationMs && halfDurationMs > 0) {
           setTimeout(() => {
             element.volume = safeHalfGain;
@@ -165,32 +174,43 @@ export class AudioEngine {
         }
       });
 
-      element.addEventListener('ended', () => {
-        this.debug?.incrementCounter('audio_fallback_completed');
-      });
-
-      element.play()
-        .then(() => {
-          this.debug?.incrementCounter('audio_fallback_started');
-          this.debug?.setFlag('audio_last_play', 'html_audio');
-          if (reason) {
-            this.debug?.setFlag('audio_fallback_reason', reason);
-          }
-          this.buffers.set(key, null);
-        })
-        .catch((error) => {
-          this.debug?.recordError(new EngineError('Fallback audio playback failed', { cause: error }));
-          this.debug?.incrementCounter('audio_playbacks_failed');
+      return new Promise((resolve) => {
+        element.addEventListener('ended', () => {
+          this.debug?.incrementCounter('audio_fallback_completed');
+          resolve({ method: 'html_audio', duration: lastKnownDuration });
         });
+
+        element.play()
+          .then(() => {
+            this.debug?.incrementCounter('audio_fallback_started');
+            this.debug?.setFlag('audio_last_play', 'html_audio');
+            if (reason) {
+              this.debug?.setFlag('audio_fallback_reason', reason);
+            }
+            this.buffers.set(key, null);
+          })
+          .catch((error) => {
+            this.debug?.recordError(new EngineError('Fallback audio playback failed', { cause: error }));
+            this.debug?.incrementCounter('audio_playbacks_failed');
+            resolve(null);
+          });
+      });
     } catch (error) {
       this.debug?.recordError(new EngineError('Fallback audio creation failed', { cause: error }));
       this.debug?.incrementCounter('audio_playbacks_failed');
+      return Promise.resolve(null);
     }
   }
 
   async startSoundtrackPlaylist() {
     this.debug?.incrementCounter('soundtrack_start_attempts');
     this.debug?.setFlag('soundtrack_state', 'starting');
+
+    if (this.soundtrackLoopActive) {
+      this.debug?.log('Soundtrack already running, ignoring new start request');
+      this.debug?.incrementCounter('soundtrack_duplicate_starts');
+      return;
+    }
 
     if (!this.soundtrackTracks?.length) {
       this.debug?.log('Soundtrack blocked: no tracks configured');
@@ -209,23 +229,40 @@ export class AudioEngine {
       return;
     }
 
+    this.soundtrackLoopActive = true;
+    await this.playNextSoundtrackTrack();
+  }
+
+  async playNextSoundtrackTrack() {
+    if (!this.soundtrackLoopActive) return;
+
     const track = this.soundtrackTracks[this.soundtrackIndex % this.soundtrackTracks.length];
     this.soundtrackIndex = (this.soundtrackIndex + 1) % this.soundtrackTracks.length;
+    this.debug?.setFlag('soundtrack_next_track', track.key);
 
-    try {
-      if (hasContext) {
-        await this.playSegmented({ key: track.key, url: track.url, halfGain: 0.35 });
-      } else {
-        this.playWithElement({ key: track.key, url: track.url, halfGain: 0.35, reason: 'soundtrack_no_context' });
-      }
+    const playResult = await this.playSegmented({ key: track.key, url: track.url, halfGain: 0.35 });
 
-      this.debug?.setFlag('soundtrack_state', 'playing');
-      this.debug?.setFlag('soundtrack_last_track', track.key);
-    } catch (error) {
-      this.debug?.recordError(new EngineError('Soundtrack playback failed', { cause: error }));
+    if (!playResult) {
       this.debug?.incrementCounter('soundtrack_playback_failures');
       this.debug?.setFlag('soundtrack_state', 'blocked');
       this.debug?.setFlag('soundtrack_safe_state', 'blocked');
+      this.soundtrackLoopActive = false;
+      return;
     }
+
+    this.debug?.setFlag('soundtrack_state', 'playing');
+    this.debug?.setFlag('soundtrack_last_track', track.key);
+    this.debug?.setFlag('soundtrack_last_method', playResult.method);
+
+    const durationMs = Number.isFinite(playResult.duration) ? playResult.duration * 1000 : 6000;
+    const nextDelay = Math.max(500, durationMs + 250);
+    this.debug?.setFlag('soundtrack_next_in_ms', Math.round(nextDelay));
+
+    if (this.soundtrackTimer) clearTimeout(this.soundtrackTimer);
+    this.soundtrackTimer = setTimeout(() => {
+      void this.playNextSoundtrackTrack();
+    }, nextDelay);
+
+    this.debug?.incrementCounter('soundtrack_tracks_played');
   }
 }
