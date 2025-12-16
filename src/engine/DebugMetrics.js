@@ -24,9 +24,13 @@ export class DebugMetrics {
     return this.log(`ERROR: ${error.message || error}`, { stack: error.stack });
   }
 
-  setFlag(name, value) {
+  setFlag(name, value, { log = true } = {}) {
+    const current = this.flags.get(name);
     this.flags.set(name, value);
-    this.log(`Flag ${name} set to ${value}`);
+
+    if (log && current !== value) {
+      this.log(`Flag ${name} set to ${value}`);
+    }
   }
 
   getFlag(name) {
