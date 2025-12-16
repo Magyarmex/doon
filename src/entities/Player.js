@@ -42,5 +42,8 @@ export class Player {
         entities.push(shot);
       }
     }
+
+    const aimingBand = this.rotation.pitch > 0.35 ? 'upward' : this.rotation.pitch < -0.35 ? 'downward' : 'level';
+    debug.setFlag('aim_band', aimingBand);
   }
 }

@@ -100,6 +100,7 @@ function renderDebug() {
   const errorEl = document.getElementById('metric-errors');
   const sessionEl = document.getElementById('metric-session');
   const watchdogEl = document.getElementById('metric-watchdog');
+  const aimEl = document.getElementById('metric-aim');
   const ammoEl = document.getElementById('metric-ammo');
   const rifleStateEl = document.getElementById('metric-rifle-state');
   const pointerLocksEl = document.getElementById('metric-pointer-locks');
@@ -110,6 +111,7 @@ function renderDebug() {
   errorEl.textContent = `Errors: ${debug.errorCount}`;
   sessionEl.textContent = `Session: ${debug.getFlag('session_boot') ?? 'unknown'}`;
   watchdogEl.textContent = `Boot Guard: ${debug.getFlag('boot_watchdog') ?? 'idle'}`;
+  aimEl.textContent = `Aim: ${debug.getFlag('aim_band') ?? 'unknown'}`;
   ammoEl.textContent = `Rifle Ammo: ${debug.getFlag('rifle_ammo') ?? 12}`;
   rifleStateEl.textContent = `Rifle State: ${debug.getFlag('rifle_state') ?? 'ready'}`;
   pointerLocksEl.textContent = `Pointer Locks: ${debug.getCounter('pointer_lock_requests')}`;
