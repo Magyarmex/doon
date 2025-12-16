@@ -83,8 +83,6 @@ function renderDebug() {
   const errorEl = document.getElementById('metric-errors');
   const sessionEl = document.getElementById('metric-session');
   const watchdogEl = document.getElementById('metric-watchdog');
-  const yawEl = document.getElementById('metric-yaw');
-  const pitchEl = document.getElementById('metric-pitch');
   const ammoEl = document.getElementById('metric-ammo');
   const rifleStateEl = document.getElementById('metric-rifle-state');
   const pointerLocksEl = document.getElementById('metric-pointer-locks');
@@ -95,8 +93,6 @@ function renderDebug() {
   errorEl.textContent = `Errors: ${debug.errorCount}`;
   sessionEl.textContent = `Session: ${debug.getFlag('session_boot') ?? 'unknown'}`;
   watchdogEl.textContent = `Boot Guard: ${debug.getFlag('boot_watchdog') ?? 'idle'}`;
-  yawEl.textContent = `Yaw: ${debug.getFlag('player_yaw') ?? '--'}`;
-  pitchEl.textContent = `Pitch: ${debug.getFlag('player_pitch') ?? '--'}`;
   ammoEl.textContent = `Rifle Ammo: ${debug.getFlag('rifle_ammo') ?? 12}`;
   rifleStateEl.textContent = `Rifle State: ${debug.getFlag('rifle_state') ?? 'ready'}`;
   pointerLocksEl.textContent = `Pointer Locks: ${debug.getCounter('pointer_lock_requests')}`;

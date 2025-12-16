@@ -42,8 +42,5 @@ export class Player {
         entities.push(shot);
       }
     }
-
-    debug.setFlag('player_yaw', this.rotation.yaw.toFixed(2));
-    debug.setFlag('player_pitch', this.rotation.pitch.toFixed(2));
   }
 }
