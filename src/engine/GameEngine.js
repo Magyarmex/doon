@@ -25,8 +25,11 @@ export class GameEngine {
     this.state = {
       running: false,
       lastFrame: 0,
-      fps: 0
+      fps: 0,
+      frameCount: 0,
+      frameFaults: 0
     };
+    this.debug.setFlag('engine_state', 'idle');
     this.spawnDefaults();
   }
 
@@ -59,6 +62,7 @@ export class GameEngine {
     if (this.state.running) return;
     this.debug.log('Engine start');
     this.state.running = true;
+    this.debug.setFlag('engine_state', 'running');
     requestAnimationFrame(this.loop.bind(this));
   }
 
@@ -73,13 +77,29 @@ export class GameEngine {
     const delta = (timestamp - this.state.lastFrame) / 1000;
     this.state.fps = delta > 0 ? 1 / delta : 0;
     this.state.lastFrame = timestamp;
+    this.state.frameCount += 1;
+    this.debug.setSample('frame_time_ms', Number((delta * 1000).toFixed(3)));
+    this.debug.setFlag('frame_budget', delta > 1 / 30 ? 'over-budget' : 'on-track', { log: false });
+    this.debug.incrementCounter('engine_frames_seen', 1, { log: false });
 
-    try {
-      this.update(delta);
-      this.renderer.render(this.level, { camera: this.camera, entities: this.entities });
-    } catch (error) {
-      this.debug.recordError(error);
-      this.stop();
+    const updateResult = this.debug.guard('engine_update', () => this.update(delta));
+    const renderResult = this.debug.guard('engine_render', () =>
+      this.renderer.render(this.level, { camera: this.camera, entities: this.entities })
+    );
+
+    if (!updateResult.ok || !renderResult.ok) {
+      this.state.frameFaults += 1;
+      this.debug.setFlag('engine_state', 'degraded');
+      this.debug.incrementCounter('engine_fault_frames', 1, { log: false });
+      if (this.state.frameFaults >= 3) {
+        this.debug.recordWarning('Engine halted after consecutive faults');
+        this.stop();
+        this.debug.setFlag('engine_state', 'halted');
+        return;
+      }
+    } else {
+      this.state.frameFaults = 0;
+      this.debug.setFlag('engine_state', 'running', { log: false });
     }
 
     requestAnimationFrame(this.loop.bind(this));
@@ -123,6 +143,7 @@ export class GameEngine {
 
       this.debug.setFlag('camera_x', this.camera.position.x.toFixed(2), { log: false });
       this.debug.setFlag('camera_z', this.camera.position.z.toFixed(2), { log: false });
+      this.debug.setSample('player_yaw', Number(player.rotation.yaw.toFixed(3)));
     }
   }
 }

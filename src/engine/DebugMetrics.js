@@ -1,19 +1,23 @@
 export class DebugMetrics {
-  constructor() {
+  constructor({ maxLogs = 250 } = {}) {
+    this.maxLogs = maxLogs;
     this.logs = [];
     this.errorCount = 0;
     this.flags = new Map();
     this.counters = new Map();
+    this.samples = new Map();
+    this.lastError = null;
   }
 
-  log(message, data = {}) {
+  log(message, data = {}, level = 'info') {
     const entry = {
       message,
       data,
+      level,
       timestamp: new Date().toISOString()
     };
     this.logs.push(entry);
-    if (this.logs.length > 100) {
+    if (this.logs.length > this.maxLogs) {
       this.logs.shift();
     }
     return entry;
@@ -21,7 +25,14 @@ export class DebugMetrics {
 
   recordError(error) {
     this.errorCount += 1;
-    return this.log(`ERROR: ${error.message || error}`, { stack: error.stack });
+    const message = error?.message || error || 'Unknown error';
+    this.lastError = message;
+    this.setFlag('last_error', message, { log: false });
+    return this.log(`ERROR: ${message}`, { stack: error?.stack }, 'error');
+  }
+
+  recordWarning(message, data = {}) {
+    return this.log(`WARN: ${message}`, data, 'warn');
   }
 
   setFlag(name, value, { log = true } = {}) {
@@ -37,15 +48,39 @@ export class DebugMetrics {
     return this.flags.get(name);
   }
 
-  incrementCounter(name, amount = 1) {
+  setSample(name, value) {
+    this.samples.set(name, { value, timestamp: Date.now() });
+    return value;
+  }
+
+  getSample(name) {
+    return this.samples.get(name)?.value ?? null;
+  }
+
+  incrementCounter(name, amount = 1, { log = true } = {}) {
     const current = this.counters.get(name) ?? 0;
     const next = current + amount;
     this.counters.set(name, next);
-    this.log(`Counter ${name} incremented to ${next}`);
+    if (log) {
+      this.log(`Counter ${name} incremented to ${next}`);
+    }
     return next;
   }
 
   getCounter(name) {
     return this.counters.get(name) ?? 0;
+  }
+
+  guard(name, fn) {
+    try {
+      const result = fn();
+      this.incrementCounter(`${name}_successes`, 1, { log: false });
+      return { ok: true, result };
+    } catch (error) {
+      this.recordError(error);
+      this.incrementCounter(`${name}_failures`, 1, { log: false });
+      this.setFlag(`${name}_state`, 'failed');
+      return { ok: false, error };
+    }
   }
 }

@@ -11,6 +11,17 @@ debug.setFlag('session_boot', 'initializing');
 debug.setFlag('boot_watchdog', 'armed');
 debug.log('Bootstrapping game client');
 debug.setFlag('shell_entrypoint', window.location.pathname || 'unknown');
+debug.setFlag('hud_layout', 'compact-v2');
+
+window.addEventListener('error', (event) => {
+  debug.recordError(event.error ?? new Error(event.message || 'Unknown script error'));
+  debug.incrementCounter('window_error_events');
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  debug.recordError(event.reason ?? new Error('Unhandled promise rejection'));
+  debug.incrementCounter('window_rejection_events');
+});
 
 const level = new Level(primaryLevel);
 const engine = new GameEngine({ canvas, level, debug });
@@ -42,6 +53,7 @@ document.addEventListener('keydown', (event) => {
 function requestPointer() {
   if (!canvas.requestPointerLock) {
     debug.recordError(new Error('Pointer lock not supported in this context'));
+    debug.incrementCounter('pointer_lock_unsupported');
     return;
   }
 
@@ -50,6 +62,7 @@ function requestPointer() {
     debug.incrementCounter('pointer_lock_requests');
   } catch (error) {
     debug.recordError(error);
+    debug.incrementCounter('pointer_lock_failures');
   }
 }
 
@@ -73,6 +86,9 @@ document.addEventListener('pointerlockchange', () => {
   debug.log(`Pointer ${locked ? 'locked' : 'released'}`);
   if (locked) {
     primeSoundtrack();
+    debug.incrementCounter('pointer_lock_success');
+  } else {
+    debug.incrementCounter('pointer_lock_releases');
   }
 });
 
@@ -81,6 +97,7 @@ try {
   debug.setFlag('session_boot', 'running');
   debug.setFlag('boot_watchdog', 'cleared');
   debug.incrementCounter('boot_successes');
+  debug.setFlag('last_error', 'none');
   window.__doonBooted = true;
   if (typeof window.__clearBootWatchdog === 'function') {
     window.__clearBootWatchdog();
@@ -94,33 +111,69 @@ try {
   document.getElementById('auto-start-notice').textContent = 'Failed to start — check logs.';
 }
 
+function setMetricValue(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const target = el.querySelector('.value');
+  (target ?? el).textContent = value;
+}
+
 function renderDebug() {
-  const fpsEl = document.getElementById('metric-fps');
-  const entityEl = document.getElementById('metric-entities');
-  const errorEl = document.getElementById('metric-errors');
-  const sessionEl = document.getElementById('metric-session');
-  const watchdogEl = document.getElementById('metric-watchdog');
-  const aimEl = document.getElementById('metric-aim');
-  const ammoEl = document.getElementById('metric-ammo');
-  const rifleStateEl = document.getElementById('metric-rifle-state');
-  const pointerLocksEl = document.getElementById('metric-pointer-locks');
   const logList = document.getElementById('log-entries');
 
-  fpsEl.textContent = `FPS: ${engine.state.fps.toFixed(1)}`;
-  entityEl.textContent = `Entities: ${engine.entities.length}`;
-  errorEl.textContent = `Errors: ${debug.errorCount}`;
-  sessionEl.textContent = `Session: ${debug.getFlag('session_boot') ?? 'unknown'}`;
-  watchdogEl.textContent = `Boot Guard: ${debug.getFlag('boot_watchdog') ?? 'idle'}`;
-  aimEl.textContent = `Aim: ${debug.getFlag('aim_band') ?? 'unknown'}`;
-  ammoEl.textContent = `Rifle Ammo: ${debug.getFlag('rifle_ammo') ?? 12}`;
-  rifleStateEl.textContent = `Rifle State: ${debug.getFlag('rifle_state') ?? 'ready'}`;
-  pointerLocksEl.textContent = `Pointer Locks: ${debug.getCounter('pointer_lock_requests')}`;
+  setMetricValue('metric-fps', `${engine.state.fps.toFixed(1)} fps`);
+  setMetricValue('metric-frame-time', `${(debug.getSample('frame_time_ms') ?? 0).toFixed(2)} ms`);
+  setMetricValue('metric-loop-health', `${debug.getFlag('frame_budget') ?? 'n/a'} | faults ${engine.state.frameFaults}`);
+  setMetricValue('metric-errors', debug.errorCount);
+  setMetricValue('metric-log-volume', `${debug.logs.length} entries`);
+  setMetricValue('metric-session', debug.getFlag('session_boot') ?? 'unknown');
+  setMetricValue('metric-watchdog', debug.getFlag('boot_watchdog') ?? 'idle');
+  setMetricValue(
+    'metric-pointer-locks',
+    `${debug.getCounter('pointer_lock_requests')} req / ${debug.getCounter('pointer_lock_success') || 0} ok`
+  );
+  setMetricValue(
+    'metric-boot-counters',
+    `${debug.getCounter('boot_successes')} ok / ${debug.getCounter('boot_failures')} fail`
+  );
+  setMetricValue('metric-aim', debug.getFlag('aim_band') ?? 'unknown');
+  setMetricValue('metric-ammo', `${debug.getFlag('rifle_ammo') ?? 12} rds`);
+  setMetricValue('metric-rifle-state', debug.getFlag('rifle_state') ?? 'ready');
+  setMetricValue('metric-camera', `${debug.getFlag('camera_x') ?? '--'}, ${debug.getFlag('camera_z') ?? '--'}`);
+  setMetricValue('metric-player-rotation', `${debug.getSample('player_yaw') ?? 0}`);
+  setMetricValue('metric-entities', `${engine.entities.length} active`);
+  setMetricValue('metric-engine-state', debug.getFlag('engine_state') ?? 'idle');
+  setMetricValue(
+    'metric-enemy-state',
+    `${debug.getFlag('enemy_state') ?? 'unknown'} @ X:${debug.getFlag('enemy_x') ?? '--'} Z:${debug.getFlag('enemy_z') ?? '--'}`
+  );
+  setMetricValue('metric-audio-state', debug.getFlag('audio_state') ?? 'n/a');
+  setMetricValue(
+    'metric-soundtrack',
+    `${debug.getFlag('soundtrack_state') ?? 'idle'} (${debug.getFlag('soundtrack_last_track') ?? 'none'})`
+  );
+  setMetricValue(
+    'metric-soundtrack-next',
+    `${debug.getFlag('soundtrack_next_track') ?? 'pending'} in ${debug.getFlag('soundtrack_next_in_ms') ?? '--'}ms`
+  );
+  setMetricValue('metric-last-error', debug.getFlag('last_error') ?? 'none');
 
   logList.innerHTML = '';
-  debug.logs.slice(-6).forEach((log) => {
+  debug.logs.slice(-8).forEach((log) => {
     const li = document.createElement('li');
     li.className = 'log-entry';
-    li.textContent = `${log.timestamp} — ${log.message}`;
+    li.dataset.level = log.level;
+
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.textContent = log.level ?? 'info';
+
+    const message = document.createElement('span');
+    message.className = 'message';
+    message.textContent = `${log.timestamp} — ${log.message}`;
+
+    li.appendChild(tag);
+    li.appendChild(message);
     logList.appendChild(li);
   });
 
