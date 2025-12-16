@@ -5,6 +5,8 @@ export class AudioEngine {
     this.debug = debug;
     this.buffers = new Map();
     this.state = 'uninitialized';
+    this.soundtrackTracks = [];
+    this.soundtrackIndex = 0;
     const AudioContext = globalThis.AudioContext || globalThis.webkitAudioContext;
 
     if (!AudioContext) {
@@ -22,6 +24,31 @@ export class AudioEngine {
       this.debug?.recordError(error);
       this.debug?.setFlag('audio_state', 'failed');
     }
+  }
+
+  configureSoundtrack(tracks = []) {
+    if (!Array.isArray(tracks)) {
+      this.debug?.recordError(new EngineError('configureSoundtrack requires an array of tracks'));
+      this.debug?.incrementCounter('soundtrack_config_errors');
+      this.debug?.setFlag('soundtrack_safe_state', 'blocked');
+      return;
+    }
+
+    this.soundtrackTracks = [];
+    this.soundtrackIndex = 0;
+
+    tracks.forEach((track, index) => {
+      if (!track?.key || !track?.url) {
+        this.debug?.recordError(new EngineError(`Invalid soundtrack track at index ${index}`));
+        this.debug?.incrementCounter('soundtrack_invalid_entries');
+        return;
+      }
+      this.soundtrackTracks.push({ key: track.key, url: track.url });
+      this.debug?.log(`Soundtrack track configured: ${track.key}`);
+    });
+
+    this.debug?.setFlag('soundtrack_tracks_configured', this.soundtrackTracks.length);
+    this.debug?.setFlag('soundtrack_state', this.soundtrackTracks.length ? 'ready' : 'blocked');
   }
 
   async ensureContextReady() {
@@ -161,74 +188,44 @@ export class AudioEngine {
     }
   }
 
-  configureSoundtrack(tracks = []) {
-    this.soundtrackTracks = Array.isArray(tracks) ? [...tracks] : [];
-    this.soundtrackIndex = 0;
-    this.debug?.setFlag('soundtrack_tracks_configured', this.soundtrackTracks.length);
-  }
-
   async startSoundtrackPlaylist() {
     this.debug?.incrementCounter('soundtrack_start_attempts');
+    this.debug?.setFlag('soundtrack_state', 'starting');
 
-    const AudioContext = globalThis.AudioContext || globalThis.webkitAudioContext;
+    if (!this.soundtrackTracks?.length) {
+      this.debug?.log('Soundtrack blocked: no tracks configured');
+      this.debug?.setFlag('soundtrack_state', 'blocked');
+      this.debug?.setFlag('soundtrack_safe_state', 'blocked');
+      return;
+    }
+
+    const hasContext = Boolean(this.context);
     const hasAudioElement = typeof Audio !== 'undefined';
 
-    if (!this.soundtrackTracks || this.soundtrackTracks.length === 0) {
+    if (!hasContext && !hasAudioElement) {
+      this.debug?.log('Soundtrack blocked: audio unavailable in this environment');
       this.debug?.setFlag('soundtrack_state', 'blocked');
-      this.debug?.setFlag('soundtrack_block_reason', 'no_tracks');
-      this.debug?.incrementCounter('soundtrack_start_blocked');
+      this.debug?.setFlag('soundtrack_safe_state', 'blocked');
       return;
     }
 
-    if (this.state === 'unsupported' || !AudioContext || !hasAudioElement) {
-      const reasons = [];
-      if (this.state === 'unsupported') reasons.push('engine_unsupported');
-      if (!AudioContext) reasons.push('audiocontext_missing');
-      if (!hasAudioElement) reasons.push('audio_element_missing');
-      this.debug?.setFlag('soundtrack_state', 'blocked');
-      this.debug?.setFlag('soundtrack_block_reason', reasons.join(',') || 'unknown');
-      this.debug?.incrementCounter('soundtrack_start_blocked');
-      return;
-    }
-
-    const nextTrack = this.soundtrackTracks[this.soundtrackIndex] ?? this.soundtrackTracks[0];
-    if (!nextTrack?.url) {
-      this.debug?.setFlag('soundtrack_state', 'blocked');
-      this.debug?.setFlag('soundtrack_block_reason', 'invalid_track');
-      this.debug?.incrementCounter('soundtrack_start_blocked');
-      return;
-    }
+    const track = this.soundtrackTracks[this.soundtrackIndex % this.soundtrackTracks.length];
+    this.soundtrackIndex = (this.soundtrackIndex + 1) % this.soundtrackTracks.length;
 
     try {
-      await this.ensureContextReady();
-    } catch (error) {
-      this.debug?.recordError(new EngineError('Soundtrack context resume failed', { cause: error }));
-      this.debug?.setFlag('soundtrack_state', 'blocked');
-      this.debug?.setFlag('soundtrack_block_reason', 'context_resume_failed');
-      this.debug?.incrementCounter('soundtrack_start_blocked');
-      return;
-    }
+      if (hasContext) {
+        await this.playSegmented({ key: track.key, url: track.url, halfGain: 0.35 });
+      } else {
+        this.playWithElement({ key: track.key, url: track.url, halfGain: 0.35, reason: 'soundtrack_no_context' });
+      }
 
-    this.debug?.setFlag('soundtrack_state', 'starting');
-    this.debug?.incrementCounter('soundtrack_starting');
-
-    try {
-      this.soundtrackElement = new Audio(nextTrack.url);
-      this.soundtrackElement.loop = true;
-      this.soundtrackElement.volume = 0.6;
-      this.soundtrackElement.addEventListener('ended', () => {
-        this.debug?.incrementCounter('soundtrack_loops_completed');
-      });
-
-      await this.soundtrackElement.play();
       this.debug?.setFlag('soundtrack_state', 'playing');
-      this.debug?.setFlag('soundtrack_current_track', nextTrack.key || 'unknown');
-      this.debug?.incrementCounter('soundtrack_start_successes');
+      this.debug?.setFlag('soundtrack_last_track', track.key);
     } catch (error) {
-      this.debug?.recordError(new EngineError('Soundtrack start failed', { cause: error }));
+      this.debug?.recordError(new EngineError('Soundtrack playback failed', { cause: error }));
+      this.debug?.incrementCounter('soundtrack_playback_failures');
       this.debug?.setFlag('soundtrack_state', 'blocked');
-      this.debug?.setFlag('soundtrack_block_reason', 'play_rejected');
-      this.debug?.incrementCounter('soundtrack_start_blocked');
+      this.debug?.setFlag('soundtrack_safe_state', 'blocked');
     }
   }
 }
