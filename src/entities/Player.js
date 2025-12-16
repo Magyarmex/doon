@@ -11,7 +11,7 @@ export class Player {
     this.weapon = null;
   }
 
-  update({ delta, input, level, debug, entities }) {
+  update({ delta, input, level, debug, entities, audio }) {
     let forward = 0;
     let strafe = 0;
     if (input.isPressed('KeyW')) forward += 1;
@@ -37,13 +37,13 @@ export class Player {
     if (!level.isWallAt(this.position.x, nextZ)) this.position.z = nextZ;
 
     if (this.weapon) {
-      const shot = this.weapon.update({ delta, input, owner: this, debug });
+      const shot = this.weapon.update({ delta, input, owner: this, debug, audio });
       if (shot) {
         entities.push(shot);
       }
     }
 
-    debug.setFlag('player_yaw', this.rotation.yaw.toFixed(2));
-    debug.setFlag('player_pitch', this.rotation.pitch.toFixed(2));
+    const aimingBand = this.rotation.pitch > 0.35 ? 'upward' : this.rotation.pitch < -0.35 ? 'downward' : 'level';
+    debug.setFlag('aim_band', aimingBand);
   }
 }
