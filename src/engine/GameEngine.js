@@ -103,8 +103,8 @@ export class GameEngine {
       };
       this.camera.rotation = { ...player.rotation };
 
-      this.debug.setFlag('camera_x', this.camera.position.x.toFixed(2));
-      this.debug.setFlag('camera_z', this.camera.position.z.toFixed(2));
+      this.debug.setFlag('camera_x', this.camera.position.x.toFixed(2), { log: false });
+      this.debug.setFlag('camera_z', this.camera.position.z.toFixed(2), { log: false });
     }
   }
 }

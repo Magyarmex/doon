@@ -64,7 +64,7 @@ export class Rifle {
       debug.setFlag('rifle_audio', 'queued');
       void audio.playSegmented({
         key: 'rifle_fire',
-        url: '/sfx_Library/shot-and-reload-6158.mp3',
+        url: '../sfx_Library/shot-and-reload-6158.mp3',
         halfGain: 0.5
       });
     } else {
