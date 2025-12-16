@@ -6,12 +6,13 @@ export class Renderer {
     this.fov = 75 * (Math.PI / 180);
   }
 
-  render(level, { camera, entities }) {
+  render(level, { camera, entities, weapon }) {
     this.clear();
     this.drawSkyAndFloor();
     this.drawGrid(level, camera);
     this.drawWalls(level, camera);
     entities.forEach((entity) => this.drawEntity(entity, camera));
+    this.drawWeaponModel(weapon);
   }
 
   clear() {
@@ -156,5 +157,61 @@ export class Renderer {
       x: (x + 1) * 0.5 * this.canvas.width,
       y: (1 - (y + 1) * 0.5) * this.canvas.height
     };
+  }
+
+  drawWeaponModel(model) {
+    if (!model) return;
+    const fields = ['swayX', 'swayY', 'recoil', 'recoilKick', 'reloadDip', 'boltOffset', 'boltLift'];
+    const invalidField = fields.find((key) => !Number.isFinite(model[key]));
+    if (invalidField) {
+      this.debug.recordError(new Error(`Invalid weapon model value: ${invalidField}`));
+      return;
+    }
+
+    const originX = this.canvas.width * 0.72 + model.swayX;
+    const originY = this.canvas.height * 0.78 + model.swayY + model.reloadDip + model.recoilKick * -0.35;
+    const ctx = this.ctx;
+
+    ctx.save();
+    ctx.translate(originX, originY);
+    ctx.rotate(-0.1 + model.recoil * 0.05);
+    ctx.globalAlpha = 0.95;
+
+    // Stock and main body
+    ctx.fillStyle = '#0f172a';
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.fillRect(-90, -14, 210, 32);
+    ctx.strokeRect(-90, -14, 210, 32);
+
+    // Barrel
+    ctx.fillStyle = '#8aa1cf';
+    ctx.fillRect(120, -8 - model.recoilKick * 0.05, 160, 10);
+
+    // Bolt carrier
+    const boltShift = model.boltOffset * 24;
+    ctx.fillStyle = '#c7d2fe';
+    ctx.fillRect(36 - boltShift, -6 - model.boltLift * 0.3, 34, 12);
+    ctx.fillRect(52 - boltShift, 6 - model.boltLift * 0.3, 12, 18);
+
+    // Wooden foregrip accent
+    ctx.fillStyle = '#8b5a2b';
+    ctx.fillRect(20, -10, 80, 24);
+
+    // Receiver glow for activity
+    if (model.animation === 'fire') {
+      ctx.fillStyle = 'rgba(255, 244, 214, 0.25)';
+      ctx.fillRect(30, -16, 60, 42);
+    } else if (model.animation === 'reload') {
+      ctx.fillStyle = 'rgba(120, 191, 255, 0.25)';
+      ctx.fillRect(-60, -18, 120, 46);
+    }
+
+    // Iron sights
+    ctx.fillStyle = '#cbd5f5';
+    ctx.fillRect(170, -18 - model.recoilKick * 0.04, 8, 12);
+    ctx.fillRect(258, -16 - model.recoilKick * 0.06, 10, 8);
+
+    ctx.restore();
   }
 }

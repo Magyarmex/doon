@@ -87,6 +87,9 @@ function renderDebug() {
   const pitchEl = document.getElementById('metric-pitch');
   const ammoEl = document.getElementById('metric-ammo');
   const rifleStateEl = document.getElementById('metric-rifle-state');
+  const rifleAnimationEl = document.getElementById('metric-rifle-animation');
+  const rifleReloadEl = document.getElementById('metric-rifle-reload');
+  const rifleBoltEl = document.getElementById('metric-rifle-bolt');
   const pointerLocksEl = document.getElementById('metric-pointer-locks');
   const logList = document.getElementById('log-entries');
 
@@ -99,6 +102,9 @@ function renderDebug() {
   pitchEl.textContent = `Pitch: ${debug.getFlag('player_pitch') ?? '--'}`;
   ammoEl.textContent = `Rifle Ammo: ${debug.getFlag('rifle_ammo') ?? 12}`;
   rifleStateEl.textContent = `Rifle State: ${debug.getFlag('rifle_state') ?? 'ready'}`;
+  rifleAnimationEl.textContent = `Rifle Anim: ${debug.getFlag('rifle_animation') ?? 'idle'}`;
+  rifleReloadEl.textContent = `Reload: ${debug.getFlag('rifle_reload_progress') ?? '0%'}`;
+  rifleBoltEl.textContent = `Bolt: ${debug.getFlag('rifle_bolt') ?? 'closed'}`;
   pointerLocksEl.textContent = `Pointer Locks: ${debug.getCounter('pointer_lock_requests')}`;
 
   logList.innerHTML = '';

@@ -4,6 +4,8 @@ import { Player } from '../entities/Player.js';
 import { Enemy } from '../entities/Enemy.js';
 import { Rifle } from '../entities/Rifle.js';
 import { EngineError } from '../utils/Errors.js';
+import { createSfxLibrary } from '../audio/sfx_Library.js';
+import { createProceduralRifleShot } from '../audio/rifleSynth.js';
 
 export class GameEngine {
   constructor({ canvas, level, debug }) {
@@ -15,7 +17,10 @@ export class GameEngine {
     this.debug = debug;
     this.renderer = new Renderer(canvas, debug);
     this.input = new Input(debug);
+    this.sfx = createSfxLibrary(debug);
     this.entities = [];
+    this.weaponModelState = null;
+    this.lastWeaponPose = null;
     this.camera = {
       position: { x: 0, y: 0, z: 0 },
       rotation: { yaw: 0, pitch: 0 }
@@ -29,9 +34,12 @@ export class GameEngine {
   }
 
   spawnDefaults() {
+    const rifleSoundUrl = createProceduralRifleShot(this.debug);
+    const rifleSound = rifleSoundUrl ? this.sfx.register('rifle_fire', rifleSoundUrl, { baseVolume: 0.75 }) : null;
+    this.debug.setFlag('sfx_rifle_profile', rifleSound ? 'generated' : 'skipped');
     this.entities.push(new Player({ x: 64, y: 64 }));
     this.entities.push(new Enemy({ x: 320, y: 200 }));
-    this.entities[0].weapon = new Rifle(this.debug);
+    this.entities[0].weapon = new Rifle(this.debug, this.sfx);
     this.debug.setFlag('rifle_ammo', this.entities[0].weapon.ammo);
     this.debug.setFlag('rifle_state', 'ready');
     this.debug.log('Entities initialized', { count: this.entities.length });
@@ -58,7 +66,11 @@ export class GameEngine {
 
     try {
       this.update(delta);
-      this.renderer.render(this.level, { camera: this.camera, entities: this.entities });
+      this.renderer.render(this.level, {
+        camera: this.camera,
+        entities: this.entities,
+        weapon: this.weaponModelState
+      });
     } catch (error) {
       this.debug.recordError(error);
       this.stop();
@@ -96,6 +108,19 @@ export class GameEngine {
 
       this.debug.setFlag('camera_x', this.camera.position.x.toFixed(2));
       this.debug.setFlag('camera_z', this.camera.position.z.toFixed(2));
+      this.weaponModelState = typeof player.weapon?.getModelState === 'function' ? player.weapon.getModelState() : null;
+      if (this.weaponModelState) {
+        const poseProgress = Math.round(this.weaponModelState.reloadProgress * 10) / 10;
+        const poseLabel = `${this.weaponModelState.animation}:${poseProgress.toFixed(1)}`;
+        if (poseLabel !== this.lastWeaponPose) {
+          this.debug.setFlag('rifle_pose', poseLabel);
+          this.lastWeaponPose = poseLabel;
+        }
+      } else {
+        this.lastWeaponPose = null;
+      }
+    } else {
+      this.weaponModelState = null;
     }
   }
 }

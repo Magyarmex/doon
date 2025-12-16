@@ -33,6 +33,16 @@ export class Input {
     return this.keys.has(code);
   }
 
+  get hasActiveMovement() {
+    return (
+      this.keys.has('KeyW') ||
+      this.keys.has('KeyA') ||
+      this.keys.has('KeyS') ||
+      this.keys.has('KeyD') ||
+      this.keys.has('Space')
+    );
+  }
+
   consumeMouseDelta() {
     const { dx, dy } = this.mouse;
     this.mouse.dx = 0;
