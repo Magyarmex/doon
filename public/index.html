@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Doon Engine Prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main>
+      <div id="game-shell">
+        <canvas id="game-canvas" width="960" height="540" aria-label="Doon game view"></canvas>
+        <section id="hud" aria-live="polite" hidden>
+          <div class="stat" id="metric-fps">FPS: --</div>
+          <div class="stat" id="metric-entities">Entities: --</div>
+          <div class="stat" id="metric-errors">Errors: 0</div>
+          <div class="stat" id="metric-session">Session: starting</div>
+          <div class="stat" id="metric-watchdog">Boot Guard: armed</div>
+          <div class="stat" id="metric-yaw">Yaw: --</div>
+          <div class="stat" id="metric-pitch">Pitch: --</div>
+          <div class="stat" id="metric-ammo">Rifle Ammo: 12</div>
+          <div class="stat" id="metric-rifle-state">Rifle State: ready</div>
+          <div class="stat" id="metric-pointer-locks">Pointer Locks: 0</div>
+        </section>
+        <section id="log-panel" aria-live="polite" aria-label="Debug log" hidden>
+          <ul id="log-entries"></ul>
+        </section>
+        <div id="auto-start-notice" role="status">Booting the world… grab your mouse to aim and move.</div>
+        <button id="toggle-debug" aria-pressed="false" aria-controls="hud log-panel">Debug HUD</button>
+      </div>
+    </main>
+    <script>
+      (() => {
+        const status = document.getElementById('auto-start-notice');
+        if (!status) return;
+
+        status.dataset.watchdog = 'armed';
+        const timer = window.setTimeout(() => {
+          if (window.__doonBooted) return;
+          status.textContent = 'Still starting… if this persists, refresh or check your connection.';
+          status.dataset.watchdog = 'tripped';
+        }, 2200);
+
+        window.__clearBootWatchdog = () => window.clearTimeout(timer);
+      })();
+    </script>
+    <script type="module" src="../src/main.js"></script>
+  </body>
+</html>
