@@ -11,6 +11,9 @@ npm run dev   # start a static dev server at http://localhost:4173
 npm test      # run the node-based test suite
 ```
 
+Opening the repository root in a browser (or on GitHub Pages) now forwards straight into the live game view via `/public/`,
+ensuring you bypass the documentation wall and land directly in the playfield.
+
 ## Architecture
 
 - `src/engine` – Core systems (game loop, renderer, input, level loader, debug metrics).

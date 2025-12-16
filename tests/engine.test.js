@@ -71,4 +71,12 @@ describe('DebugMetrics', () => {
     assert.equal(debug.errorCount, 1);
     assert.ok(debug.logs[0].message.includes('boom'));
   });
+
+  test('increments named counters for instrumentation', () => {
+    const debug = new DebugMetrics();
+    assert.equal(debug.getCounter('example'), 0);
+    debug.incrementCounter('example');
+    debug.incrementCounter('example', 2);
+    assert.equal(debug.getCounter('example'), 3);
+  });
 });

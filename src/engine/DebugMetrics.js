@@ -3,6 +3,7 @@ export class DebugMetrics {
     this.logs = [];
     this.errorCount = 0;
     this.flags = new Map();
+    this.counters = new Map();
   }
 
   log(message, data = {}) {
@@ -30,5 +31,17 @@ export class DebugMetrics {
 
   getFlag(name) {
     return this.flags.get(name);
+  }
+
+  incrementCounter(name, amount = 1) {
+    const current = this.counters.get(name) ?? 0;
+    const next = current + amount;
+    this.counters.set(name, next);
+    this.log(`Counter ${name} incremented to ${next}`);
+    return next;
+  }
+
+  getCounter(name) {
+    return this.counters.get(name) ?? 0;
   }
 }

@@ -8,6 +8,7 @@ const debug = new DebugMetrics();
 
 debug.setFlag('session_boot', 'initializing');
 debug.log('Bootstrapping game client');
+debug.setFlag('shell_entrypoint', window.location.pathname || 'unknown');
 
 const level = new Level(primaryLevel);
 const engine = new GameEngine({ canvas, level, debug });
@@ -36,8 +37,16 @@ document.addEventListener('keydown', (event) => {
 });
 
 function requestPointer() {
-  if (canvas.requestPointerLock) {
+  if (!canvas.requestPointerLock) {
+    debug.recordError(new Error('Pointer lock not supported in this context'));
+    return;
+  }
+
+  try {
     canvas.requestPointerLock();
+    debug.incrementCounter('pointer_lock_requests');
+  } catch (error) {
+    debug.recordError(error);
   }
 }
 
@@ -68,6 +77,7 @@ function renderDebug() {
   const pitchEl = document.getElementById('metric-pitch');
   const ammoEl = document.getElementById('metric-ammo');
   const rifleStateEl = document.getElementById('metric-rifle-state');
+  const pointerLocksEl = document.getElementById('metric-pointer-locks');
   const logList = document.getElementById('log-entries');
 
   fpsEl.textContent = `FPS: ${engine.state.fps.toFixed(1)}`;
@@ -78,6 +88,7 @@ function renderDebug() {
   pitchEl.textContent = `Pitch: ${debug.getFlag('player_pitch') ?? '--'}`;
   ammoEl.textContent = `Rifle Ammo: ${debug.getFlag('rifle_ammo') ?? 12}`;
   rifleStateEl.textContent = `Rifle State: ${debug.getFlag('rifle_state') ?? 'ready'}`;
+  pointerLocksEl.textContent = `Pointer Locks: ${debug.getCounter('pointer_lock_requests')}`;
 
   logList.innerHTML = '';
   debug.logs.slice(-6).forEach((log) => {
