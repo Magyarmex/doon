@@ -31,11 +31,27 @@ export class GameEngine {
   }
 
   spawnDefaults() {
-    this.entities.push(new Player({ x: 64, y: 64 }));
-    this.entities.push(new Enemy({ x: 320, y: 200 }));
-    this.entities[0].weapon = new Rifle(this.debug);
+    const player = new Player({ x: 64, y: 64 });
+    const desiredEnemyZ = player.position.z + (this.level?.tileSize ?? 32) * 4;
+    let enemySpawnZ = desiredEnemyZ;
+
+    if (this.level?.isWallAt(player.position.x, desiredEnemyZ)) {
+      enemySpawnZ = player.position.z + (this.level?.tileSize ?? 32) * 5;
+      this.debug.log('Adjusted enemy spawn to avoid wall', { from: desiredEnemyZ, to: enemySpawnZ });
+      this.debug.incrementCounter('enemy_spawn_adjustments');
+    }
+
+    const enemy = new Enemy({ x: player.position.x, z: enemySpawnZ });
+
+    this.entities.push(player);
+    this.entities.push(enemy);
+
+    player.weapon = new Rifle(this.debug);
     this.debug.setFlag('rifle_ammo', this.entities[0].weapon.ammo);
     this.debug.setFlag('rifle_state', 'ready');
+    this.debug.setFlag('enemy_state', 'patrolling');
+    this.debug.setFlag('enemy_x', enemy.position.x, { log: false });
+    this.debug.setFlag('enemy_z', enemy.position.z, { log: false });
     this.debug.log('Entities initialized', { count: this.entities.length });
   }
 
@@ -70,6 +86,8 @@ export class GameEngine {
   }
 
   update(delta) {
+    const player = this.entities.find((e) => e.type === 'player');
+
     this.entities.forEach((entity) => {
       try {
         entity.update({
@@ -78,7 +96,8 @@ export class GameEngine {
           level: this.level,
           debug: this.debug,
           entities: this.entities,
-          audio: this.audio
+          audio: this.audio,
+          player
         });
       } catch (error) {
         throw new EngineError(`Entity ${entity.type} update failed`, { cause: error });
@@ -87,7 +106,6 @@ export class GameEngine {
 
     this.entities = this.entities.filter((entity) => !entity.dead);
 
-    const player = this.entities.find((e) => e.type === 'player');
     if (player) {
       const mouseDelta = this.input.consumeMouseDelta();
       if (mouseDelta.dx !== 0 || mouseDelta.dy !== 0) {
