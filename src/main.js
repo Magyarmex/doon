@@ -2,6 +2,7 @@ import { GameEngine } from './engine/GameEngine.js';
 import { Level } from './engine/Level.js';
 import { DebugMetrics } from './engine/DebugMetrics.js';
 import { primaryLevel } from './data/levels.js';
+import { soundtrackTracks } from './data/soundtrack.js';
 
 const canvas = document.getElementById('game-canvas');
 const debug = new DebugMetrics();
@@ -16,6 +17,7 @@ const engine = new GameEngine({ canvas, level, debug });
 const hud = document.getElementById('hud');
 const logPanel = document.getElementById('log-panel');
 const debugToggle = document.getElementById('toggle-debug');
+let soundtrackArmed = false;
 
 function setDebugVisibility(enabled) {
   document.body.classList.toggle('debug-visible', enabled);
@@ -51,12 +53,27 @@ function requestPointer() {
   }
 }
 
-canvas.addEventListener('click', requestPointer);
+function primeSoundtrack() {
+  if (soundtrackArmed) return;
+  soundtrackArmed = true;
+  debug.log('Soundtrack armed');
+  engine.audio.configureSoundtrack(soundtrackTracks);
+  debug.setFlag('soundtrack_ready', true);
+  void engine.audio.startSoundtrackPlaylist();
+}
+
+canvas.addEventListener('click', () => {
+  requestPointer();
+  primeSoundtrack();
+});
 canvas.addEventListener('mouseenter', requestPointer);
 document.addEventListener('pointerlockchange', () => {
   const locked = document.pointerLockElement === canvas;
   debug.setFlag('pointer_locked', locked ? 'locked' : 'released');
   debug.log(`Pointer ${locked ? 'locked' : 'released'}`);
+  if (locked) {
+    primeSoundtrack();
+  }
 });
 
 try {

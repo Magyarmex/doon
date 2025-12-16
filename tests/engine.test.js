@@ -5,6 +5,7 @@ import { Level } from '../src/engine/Level.js';
 import { DebugMetrics } from '../src/engine/DebugMetrics.js';
 import { EngineError } from '../src/utils/Errors.js';
 import { primaryLevel } from '../src/data/levels.js';
+import { AudioEngine } from '../src/engine/AudioEngine.js';
 
 class StubContext {
   constructor() {
@@ -97,5 +98,22 @@ describe('DebugMetrics', () => {
     debug.incrementCounter('example');
     debug.incrementCounter('example', 2);
     assert.equal(debug.getCounter('example'), 3);
+  });
+});
+
+describe('AudioEngine soundtrack playlist', () => {
+  test('configures and starts soundtrack playlist safely without audio context', async () => {
+    const debug = new DebugMetrics();
+    const audio = new AudioEngine({ debug });
+    audio.configureSoundtrack([{ key: 'one', url: '/fake.mp3' }]);
+
+    assert.equal(debug.getFlag('soundtrack_tracks_configured'), 1);
+    await audio.startSoundtrackPlaylist();
+
+    assert.equal(debug.getCounter('soundtrack_start_attempts'), 1);
+    assert.ok(
+      ['blocked', 'playing', 'starting', undefined].includes(debug.getFlag('soundtrack_state')),
+      'soundtrack should set a state flag even when playback is skipped'
+    );
   });
 });
