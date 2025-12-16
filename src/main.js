@@ -11,6 +11,29 @@ debug.log('Bootstrapping game client');
 
 const level = new Level(primaryLevel);
 const engine = new GameEngine({ canvas, level, debug });
+const hud = document.getElementById('hud');
+const logPanel = document.getElementById('log-panel');
+const debugToggle = document.getElementById('toggle-debug');
+
+function setDebugVisibility(enabled) {
+  document.body.classList.toggle('debug-visible', enabled);
+  hud.hidden = !enabled;
+  logPanel.hidden = !enabled;
+  debugToggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+  debug.setFlag('debug_overlay', enabled ? 'visible' : 'hidden');
+}
+
+setDebugVisibility(false);
+
+debugToggle.addEventListener('click', () => {
+  setDebugVisibility(!document.body.classList.contains('debug-visible'));
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.code === 'F3') {
+    setDebugVisibility(!document.body.classList.contains('debug-visible'));
+  }
+});
 
 function requestPointer() {
   if (canvas.requestPointerLock) {

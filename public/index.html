@@ -10,7 +10,7 @@
     <main>
       <div id="game-shell">
         <canvas id="game-canvas" width="960" height="540" aria-label="Doon game view"></canvas>
-        <section id="hud" aria-live="polite">
+        <section id="hud" aria-live="polite" hidden>
           <div class="stat" id="metric-fps">FPS: --</div>
           <div class="stat" id="metric-entities">Entities: --</div>
           <div class="stat" id="metric-errors">Errors: 0</div>
@@ -20,10 +20,11 @@
           <div class="stat" id="metric-ammo">Rifle Ammo: 12</div>
           <div class="stat" id="metric-rifle-state">Rifle State: ready</div>
         </section>
-        <section id="log-panel" aria-live="polite" aria-label="Debug log">
+        <section id="log-panel" aria-live="polite" aria-label="Debug log" hidden>
           <ul id="log-entries"></ul>
         </section>
         <div id="auto-start-notice" role="status">Booting the world… grab your mouse to aim and move.</div>
+        <button id="toggle-debug" aria-pressed="false" aria-controls="hud log-panel">Debug HUD</button>
       </div>
     </main>
     <script type="module" src="/src/main.js"></script>

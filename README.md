@@ -24,6 +24,7 @@ The `DebugMetrics` utility tracks logs, errors, and feature flags to aid future 
 ## Prototype controls & debugging
 
 - The experience boots straight into the running game; the canvas auto-requests pointer lock when you hover or click for smooth yaw/pitch.
+- Toggle the debug HUD/logs with the **Debug HUD** button or **F3** to keep the play view clear while still exposing metrics when needed.
 - Move with **WASD**, turn with the mouse or arrow keys, and fire with **Space**.
 - Reload the bolt-action rifle with **R** (12-round magazine, 1.5s between shots, 4s reload).
 - HUD metrics expose FPS, entities, orientation, ammo, rifle state, and error counts; logs surface flagged issues.
