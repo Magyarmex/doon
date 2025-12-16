@@ -62,11 +62,18 @@ export class Rifle {
 
     if (audio?.playSegmented) {
       debug.setFlag('rifle_audio', 'queued');
-      void audio.playSegmented({
-        key: 'rifle_fire',
-        url: '/sfx_Library/shot-and-reload-6158.mp3',
-        halfGain: 0.5
-      });
+      void audio
+        .playSegmented({
+          key: 'rifle_fire',
+          url: '/sfx_Library/shot-and-reload-6158.mp3',
+          halfGain: 0.5
+        })
+        .then((result) => {
+          debug.setFlag('rifle_audio', result ? 'played' : 'failed');
+          if (result?.method) {
+            debug.setFlag('rifle_audio_method', result.method);
+          }
+        });
     } else {
       debug.incrementCounter('rifle_audio_skipped');
       debug.setFlag('rifle_audio', 'missing');
