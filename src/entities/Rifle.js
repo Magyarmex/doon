@@ -26,6 +26,7 @@ export class Rifle {
         this.ammo = this.magazineSize;
         debug.log('Rifle reloaded');
         debug.setFlag('rifle_state', 'ready');
+        debug.setFlag('rifle_ammo', this.ammo);
       }
       return null;
     }
@@ -35,10 +36,14 @@ export class Rifle {
       this.reloading = this.reloadTime;
       debug.log('Rifle reload started');
       debug.setFlag('rifle_state', 'reloading');
+      debug.incrementCounter('rifle_reload_requests');
       return null;
     }
 
     if (input.isPressed('Space')) {
+      if (this.ammo <= 0 && this.reloading <= 0) {
+        debug.incrementCounter('rifle_empty_trigger');
+      }
       return this.shoot({ owner, debug, audio });
     }
 

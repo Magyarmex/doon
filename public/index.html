@@ -11,17 +11,53 @@
       <div id="game-shell">
         <canvas id="game-canvas" width="960" height="540" aria-label="Doon game view"></canvas>
         <section id="hud" aria-live="polite" hidden>
-          <div class="stat" id="metric-fps">FPS: --</div>
-          <div class="stat" id="metric-entities">Entities: --</div>
-          <div class="stat" id="metric-errors">Errors: 0</div>
-          <div class="stat" id="metric-session">Session: starting</div>
-          <div class="stat" id="metric-watchdog">Boot Guard: armed</div>
-          <div class="stat" id="metric-aim">Aim: --</div>
-          <div class="stat" id="metric-ammo">Rifle Ammo: 12</div>
-          <div class="stat" id="metric-rifle-state">Rifle State: ready</div>
-          <div class="stat" id="metric-pointer-locks">Pointer Locks: 0</div>
+          <div class="hud-group">
+            <p class="group-label">Engine</p>
+            <div class="metric" id="metric-fps"><span class="label">FPS</span><span class="value">--</span></div>
+            <div class="metric" id="metric-frame-time"><span class="label">Frame</span><span class="value">--</span></div>
+            <div class="metric" id="metric-loop-health"><span class="label">Loop</span><span class="value">--</span></div>
+            <div class="metric" id="metric-errors"><span class="label">Errors</span><span class="value">0</span></div>
+            <div class="metric" id="metric-log-volume"><span class="label">Logs</span><span class="value">0</span></div>
+          </div>
+
+          <div class="hud-group">
+            <p class="group-label">Session</p>
+            <div class="metric" id="metric-session"><span class="label">Session</span><span class="value">starting</span></div>
+            <div class="metric" id="metric-watchdog"><span class="label">Boot Guard</span><span class="value">armed</span></div>
+            <div class="metric" id="metric-pointer-locks"><span class="label">Pointer</span><span class="value">0</span></div>
+            <div class="metric" id="metric-boot-counters"><span class="label">Boot</span><span class="value">0 / 0</span></div>
+          </div>
+
+          <div class="hud-group">
+            <p class="group-label">Player</p>
+            <div class="metric" id="metric-aim"><span class="label">Aim</span><span class="value">--</span></div>
+            <div class="metric" id="metric-ammo"><span class="label">Ammo</span><span class="value">12</span></div>
+            <div class="metric" id="metric-rifle-state"><span class="label">Rifle</span><span class="value">ready</span></div>
+            <div class="metric" id="metric-camera"><span class="label">Camera</span><span class="value">--</span></div>
+            <div class="metric" id="metric-player-rotation"><span class="label">Yaw</span><span class="value">--</span></div>
+          </div>
+
+          <div class="hud-group">
+            <p class="group-label">World</p>
+            <div class="metric" id="metric-entities"><span class="label">Entities</span><span class="value">--</span></div>
+            <div class="metric" id="metric-engine-state"><span class="label">Engine</span><span class="value">idle</span></div>
+            <div class="metric" id="metric-enemy-state"><span class="label">Enemy</span><span class="value">--</span></div>
+          </div>
+
+          <div class="hud-group">
+            <p class="group-label">Audio</p>
+            <div class="metric" id="metric-audio-state"><span class="label">Audio</span><span class="value">--</span></div>
+            <div class="metric" id="metric-soundtrack"><span class="label">Soundtrack</span><span class="value">--</span></div>
+            <div class="metric" id="metric-soundtrack-next"><span class="label">Next</span><span class="value">--</span></div>
+          </div>
+
+          <div class="hud-group">
+            <p class="group-label">Diagnostics</p>
+            <div class="metric" id="metric-last-error"><span class="label">Last Error</span><span class="value">none</span></div>
+          </div>
         </section>
         <section id="log-panel" aria-live="polite" aria-label="Debug log" hidden>
+          <header class="log-header">Recent events</header>
           <ul id="log-entries"></ul>
         </section>
         <div id="auto-start-notice" role="status">Booting the world… grab your mouse to aim and move.</div>
