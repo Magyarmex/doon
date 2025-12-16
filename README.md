@@ -7,7 +7,7 @@ This project is an open, browser-friendly foundation inspired by the original Do
 No external dependencies are required. Use the built-in dev server and Node's test runner:
 
 ```bash
-npm run dev   # start a static dev server at http://localhost:4173
+npm run dev   # start a static dev server at http://localhost:4173 (binds to 0.0.0.0 for tooling)
 npm test      # run the node-based test suite
 ```
 
