@@ -7,25 +7,24 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <header>
-      <h1>Doon Engine Prototype</h1>
-      <p>An open, web-based foundation inspired by classic Doom.</p>
-    </header>
     <main>
-      <section id="hud">
-        <div class="stat" id="metric-fps">FPS: --</div>
-        <div class="stat" id="metric-entities">Entities: --</div>
-        <div class="stat" id="metric-errors">Errors: 0</div>
-        <div class="stat" id="metric-yaw">Yaw: --</div>
-        <div class="stat" id="metric-pitch">Pitch: --</div>
-        <div class="stat" id="metric-ammo">Rifle Ammo: 12</div>
-        <div class="stat" id="metric-rifle-state">Rifle State: ready</div>
-      </section>
-      <canvas id="game-canvas" width="640" height="360"></canvas>
-      <section id="log-panel">
-        <h2>Debug Log</h2>
-        <ul id="log-entries"></ul>
-      </section>
+      <div id="game-shell">
+        <canvas id="game-canvas" width="960" height="540" aria-label="Doon game view"></canvas>
+        <section id="hud" aria-live="polite">
+          <div class="stat" id="metric-fps">FPS: --</div>
+          <div class="stat" id="metric-entities">Entities: --</div>
+          <div class="stat" id="metric-errors">Errors: 0</div>
+          <div class="stat" id="metric-session">Session: starting</div>
+          <div class="stat" id="metric-yaw">Yaw: --</div>
+          <div class="stat" id="metric-pitch">Pitch: --</div>
+          <div class="stat" id="metric-ammo">Rifle Ammo: 12</div>
+          <div class="stat" id="metric-rifle-state">Rifle State: ready</div>
+        </section>
+        <section id="log-panel" aria-live="polite" aria-label="Debug log">
+          <ul id="log-entries"></ul>
+        </section>
+        <div id="auto-start-notice" role="status">Booting the world… grab your mouse to aim and move.</div>
+      </div>
     </main>
     <script type="module" src="/src/main.js"></script>
   </body>

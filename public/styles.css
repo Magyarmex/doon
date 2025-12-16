@@ -8,36 +8,54 @@
 body {
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
 }
 
-header {
-  text-align: center;
-  margin-top: 1rem;
+#game-shell {
+  position: relative;
+  width: min(100vw, 1280px);
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  border: 2px solid #3c75ff;
+  background: radial-gradient(circle at 20% 20%, rgba(60, 117, 255, 0.1), transparent 40%),
+    radial-gradient(circle at 80% 60%, rgba(255, 70, 70, 0.08), transparent 50%),
+    #05070f;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.45), 0 0 60px rgba(20, 30, 60, 0.6);
+  overflow: hidden;
 }
 
 #game-canvas {
-  border: 2px solid #3c75ff;
-  background: #05070f;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.45);
+  width: 100%;
+  height: 100%;
 }
 
 #hud {
-  display: flex;
-  gap: 1rem;
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
   font-weight: bold;
+  pointer-events: none;
 }
 
 #log-panel {
-  width: 640px;
-  background: #0f1320;
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  background: rgba(15, 19, 32, 0.78);
   border: 1px solid #1d2640;
   border-radius: 6px;
   padding: 0.5rem 1rem 1rem;
   box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.35);
+  max-height: 30%;
+  overflow: auto;
 }
 
 #log-panel ul {
@@ -58,9 +76,23 @@ header {
 }
 
 .stat {
-  min-width: 140px;
+  min-width: 120px;
   padding: 0.35rem 0.5rem;
   border-radius: 4px;
-  background: #111727;
+  background: rgba(17, 23, 39, 0.9);
   border: 1px solid #1d2640;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.35);
+}
+
+#auto-start-notice {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  padding: 0.4rem 0.6rem;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
