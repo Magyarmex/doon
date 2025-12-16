@@ -7,6 +7,7 @@ const canvas = document.getElementById('game-canvas');
 const debug = new DebugMetrics();
 
 debug.setFlag('session_boot', 'initializing');
+debug.setFlag('boot_watchdog', 'armed');
 debug.log('Bootstrapping game client');
 debug.setFlag('shell_entrypoint', window.location.pathname || 'unknown');
 
@@ -61,10 +62,18 @@ document.addEventListener('pointerlockchange', () => {
 try {
   engine.start();
   debug.setFlag('session_boot', 'running');
+  debug.setFlag('boot_watchdog', 'cleared');
+  debug.incrementCounter('boot_successes');
+  window.__doonBooted = true;
+  if (typeof window.__clearBootWatchdog === 'function') {
+    window.__clearBootWatchdog();
+  }
   document.getElementById('auto-start-notice').textContent = 'Running — use WASD to move, mouse to look, Space to fire.';
 } catch (error) {
   debug.recordError(error);
   debug.setFlag('session_boot', 'failed');
+  debug.setFlag('boot_watchdog', 'tripped');
+  debug.incrementCounter('boot_failures');
   document.getElementById('auto-start-notice').textContent = 'Failed to start — check logs.';
 }
 
@@ -73,6 +82,7 @@ function renderDebug() {
   const entityEl = document.getElementById('metric-entities');
   const errorEl = document.getElementById('metric-errors');
   const sessionEl = document.getElementById('metric-session');
+  const watchdogEl = document.getElementById('metric-watchdog');
   const yawEl = document.getElementById('metric-yaw');
   const pitchEl = document.getElementById('metric-pitch');
   const ammoEl = document.getElementById('metric-ammo');
@@ -84,6 +94,7 @@ function renderDebug() {
   entityEl.textContent = `Entities: ${engine.entities.length}`;
   errorEl.textContent = `Errors: ${debug.errorCount}`;
   sessionEl.textContent = `Session: ${debug.getFlag('session_boot') ?? 'unknown'}`;
+  watchdogEl.textContent = `Boot Guard: ${debug.getFlag('boot_watchdog') ?? 'idle'}`;
   yawEl.textContent = `Yaw: ${debug.getFlag('player_yaw') ?? '--'}`;
   pitchEl.textContent = `Pitch: ${debug.getFlag('player_pitch') ?? '--'}`;
   ammoEl.textContent = `Rifle Ammo: ${debug.getFlag('rifle_ammo') ?? 12}`;
