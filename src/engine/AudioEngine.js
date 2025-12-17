@@ -116,6 +116,9 @@ export class AudioEngine {
     try {
       const response = await fetch(url);
       if (!response.ok) {
+        this.debug?.incrementCounter('audio_fetch_failures');
+        this.debug?.setFlag('audio_last_fetch_status', response.status);
+        this.debug?.setFlag('audio_last_fetch_url', url);
         throw new EngineError(`Sound fetch failed: ${response.status}`);
       }
       const arrayBuffer = await response.arrayBuffer();
@@ -130,6 +133,9 @@ export class AudioEngine {
       this.debug?.recordError(error);
       this.debug?.incrementCounter('audio_load_failures');
       this.debug?.setFlag('audio_last_loaded', 'failed');
+      if (!this.debug?.getFlag || !this.debug.getFlag('audio_last_fetch_status')) {
+        this.debug?.setFlag('audio_last_fetch_status', 'exception');
+      }
       return null;
     }
   }

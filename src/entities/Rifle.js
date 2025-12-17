@@ -70,7 +70,7 @@ export class Rifle {
       void audio
         .playSegmented({
           key: 'rifle_fire',
-          url: '/sfx_Library/shot-and-reload-6158.mp3',
+          url: 'sfx_Library/shot-and-reload-6158.mp3',
           halfGain: 0.5
         })
         .then((result) => {
