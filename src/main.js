@@ -154,6 +154,7 @@ function renderDebug() {
     `${debug.getFlag('enemy_state') ?? 'unknown'} @ X:${debug.getFlag('enemy_x') ?? '--'} Z:${debug.getFlag('enemy_z') ?? '--'}`
   );
   setMetricValue('metric-audio-state', debug.getFlag('audio_state') ?? 'n/a');
+  setMetricValue('metric-audio-base', debug.getFlag('audio_asset_base') ?? 'n/a');
   setMetricValue(
     'metric-soundtrack',
     `${debug.getFlag('soundtrack_state') ?? 'idle'} (${debug.getFlag('soundtrack_last_track') ?? 'none'})`

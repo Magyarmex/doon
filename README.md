@@ -14,9 +14,9 @@ npm test      # run the node-based test suite
 Opening the repository root in a browser (or on GitHub Pages) now forwards straight into the live game view via `/public/`,
 ensuring you bypass the documentation wall and land directly in the playfield.
 
-> Audio assets are mounted at the repository root under `/sfx_Library` (not in `/public`). After pulling updates, restart the
-> dev server (or redeploy your static host) so those root-absolute URLs resolve; production servers need to expose the
-> `sfx_Library` directory at the site root for soundtrack and rifle effects to load.
+> Audio assets now live at the repository root next to `README.md` (for example `/90s-chopped-2-435023.mp3` and
+> `/shot-and-reload-6158.mp3`). The dev server automatically exposes root-level `.mp3` files; production hosts must serve these
+> files from the site root so soundtrack and rifle effects can load.
 
 ## Architecture
 
