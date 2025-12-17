@@ -28,6 +28,38 @@ export class AudioEngine {
     }
   }
 
+  async primeFromUserGesture(reason = 'unspecified') {
+    if (!this.context) {
+      this.debug?.incrementCounter('audio_primes_skipped');
+      this.debug?.setFlag('audio_last_prime', 'skipped');
+      return false;
+    }
+
+    try {
+      this.debug?.incrementCounter('audio_prime_attempts');
+      const ready = await this.ensureContextReady();
+      if (!ready) {
+        this.debug?.incrementCounter('audio_prime_failures');
+        this.debug?.setFlag('audio_last_prime', 'failed');
+        this.debug?.setFlag('audio_last_prime_reason', reason);
+        return false;
+      }
+
+      this.state = 'ready';
+      this.debug?.incrementCounter('audio_prime_successes');
+      this.debug?.setFlag('audio_state', this.context.state);
+      this.debug?.setFlag('audio_last_prime', 'ready');
+      this.debug?.setFlag('audio_last_prime_reason', reason);
+      return true;
+    } catch (error) {
+      this.debug?.recordError(new EngineError('Failed to prime audio system', { cause: error }));
+      this.debug?.incrementCounter('audio_prime_failures');
+      this.debug?.setFlag('audio_last_prime', 'error');
+      this.debug?.setFlag('audio_last_prime_reason', reason);
+      return false;
+    }
+  }
+
   configureSoundtrack(tracks = []) {
     if (!Array.isArray(tracks)) {
       this.debug?.recordError(new EngineError('configureSoundtrack requires an array of tracks'));
@@ -54,7 +86,10 @@ export class AudioEngine {
   }
 
   async ensureContextReady() {
-    if (!this.context) return false;
+    if (!this.context) {
+      this.debug?.setFlag('audio_state', 'unavailable');
+      return false;
+    }
     if (this.context.state === 'suspended') {
       try {
         await this.context.resume();
@@ -64,6 +99,7 @@ export class AudioEngine {
         return false;
       }
     }
+    this.debug?.setFlag('audio_state', this.context.state);
     return true;
   }
 
