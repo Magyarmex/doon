@@ -5,10 +5,22 @@ import url from 'node:url';
 
 const root = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), '..');
 const publicDir = path.join(root, 'public');
-const sfxDir = path.join(root, 'sfx_Library');
 const defaultFile = path.join(publicDir, 'index.html');
 const port = process.env.PORT || 4173;
 const host = process.env.HOST || '0.0.0.0';
+const audioManifest = new Set(
+  (() => {
+    try {
+      return fs
+        .readdirSync(root, { withFileTypes: true })
+        .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith('.mp3'))
+        .map((entry) => entry.name);
+    } catch (error) {
+      console.warn('[dev-server] Unable to read audio manifest:', error.message);
+      return [];
+    }
+  })()
+);
 
 const mimeTypes = {
   '.html': 'text/html',
@@ -23,10 +35,14 @@ function sendError(res, message, status = 500) {
 }
 
 function resolveAsset(pathname) {
+  const sanitized = pathname.replace(/^\//, '');
   const candidates = [
-    path.join(publicDir, pathname),
-    path.join(sfxDir, pathname.replace(/^\/sfx_Library\//, ''))
+    path.join(publicDir, sanitized)
   ];
+
+  if (pathname.endsWith('.mp3') && audioManifest.has(sanitized)) {
+    candidates.push(path.join(root, sanitized));
+  }
 
   for (const candidate of candidates) {
     if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {

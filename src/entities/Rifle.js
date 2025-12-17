@@ -1,5 +1,6 @@
 import { Bullet } from './Bullet.js';
 import { EngineError } from '../utils/Errors.js';
+import { AUDIO_FILES, resolveAudioPath } from '../utils/audioPaths.js';
 
 export class Rifle {
   constructor(debug) {
@@ -70,7 +71,7 @@ export class Rifle {
       void audio
         .playSegmented({
           key: 'rifle_fire',
-          url: '/sfx_Library/shot-and-reload-6158.mp3',
+          url: resolveAudioPath(AUDIO_FILES.rifleShot),
           halfGain: 0.5
         })
         .then((result) => {

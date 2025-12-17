@@ -1,4 +1,5 @@
 import { EngineError } from '../utils/Errors.js';
+import { AUDIO_ASSET_BASE } from '../utils/audioPaths.js';
 
 export class AudioEngine {
   constructor({ debug }) {
@@ -10,6 +11,7 @@ export class AudioEngine {
     this.soundtrackTimer = null;
     this.soundtrackLoopActive = false;
     const AudioContext = globalThis.AudioContext || globalThis.webkitAudioContext;
+    this.debug?.setFlag('audio_asset_base', AUDIO_ASSET_BASE);
 
     if (!AudioContext) {
       this.state = 'unsupported';
@@ -150,6 +152,11 @@ export class AudioEngine {
       this.debug?.recordError(new EngineError('playSegmented requires a url'));
       this.debug?.incrementCounter('audio_playbacks_failed');
       return Promise.resolve(null);
+    }
+
+    if (typeof url === 'string' && !url.startsWith(AUDIO_ASSET_BASE)) {
+      this.debug?.incrementCounter('audio_path_mismatches');
+      this.debug?.setFlag('audio_last_path_mismatch', url);
     }
 
     const clampedGain = Math.max(0, Math.min(1, halfGain));
