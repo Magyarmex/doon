@@ -70,6 +70,7 @@ function primeSoundtrack() {
   if (soundtrackArmed) return;
   soundtrackArmed = true;
   debug.log('Soundtrack armed');
+  void engine.audio.primeFromUserGesture('soundtrack');
   engine.audio.configureSoundtrack(soundtrackTracks);
   debug.setFlag('soundtrack_ready', true);
   void engine.audio.startSoundtrackPlaylist();
@@ -78,6 +79,11 @@ function primeSoundtrack() {
 canvas.addEventListener('click', () => {
   requestPointer();
   primeSoundtrack();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.code === 'Space') {
+    void engine.audio.primeFromUserGesture('rifle');
+  }
 });
 canvas.addEventListener('mouseenter', requestPointer);
 document.addEventListener('pointerlockchange', () => {
